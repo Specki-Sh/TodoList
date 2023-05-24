@@ -18,17 +18,16 @@ const (
 )
 
 func createTable(db *sql.DB) error {
-	query := `CREATE TABLE users (
+	query := `CREATE TABLE IF NOT EXISTS users (
 		id SERIAL PRIMARY KEY,
 		name TEXT NOT NULL,
-		email TEXT NOT NULL UNIQUE,
-		password TEXT NOT NULL
+		email TEXT NOT NULL UNIQUE
 	)`
 	if _, err := db.Exec(query); err != nil {
 		return err
 	}
 
-	query = `CREATE TABLE tasks (
+	query = `CREATE TABLE IF NOT EXISTS tasks (
 		id SERIAL PRIMARY KEY,
 		title TEXT NOT NULL,
 		description TEXT,
@@ -40,7 +39,7 @@ func createTable(db *sql.DB) error {
 	if _, err := db.Exec(query); err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
