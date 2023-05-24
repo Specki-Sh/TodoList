@@ -2,7 +2,6 @@ package repository
 
 import (
 	"database/sql"
-	"errors"
 	"todolist/domain/model"
 )
 
@@ -14,76 +13,107 @@ func NewTaskRepository(db *sql.DB) *TaskRepository {
 	return &TaskRepository{db: db}
 }
 
-func (s *TaskRepository) Add(item model.Task) (int, error) {
-	query := `INSERT INTO tasks (name, is_done) VALUES ($1, $2) RETURNING id`
-	err := s.db.QueryRow(query, item.Name, item.IsDone).Scan(&item.ID)
+func (s *TaskRepository) Create(item model.Task) (int, error) {
+	var id int
+	err := s.db.QueryRow(`INSERT INTO tasks (user_id, title, description, due_date, priority, completed) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+		item.UserID, item.Title, item.Description, item.DueDate, item.Priority, item.Completed).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
-	return item.ID, nil
+	return id, nil
 }
 
-func (s *TaskRepository) Remove(id int) error {
-	query := `DELETE FROM tasks WHERE id = $1`
-	res, err := s.db.Exec(query, id)
-	if err != nil {
-		return err
-	}
-	count, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if count == 0 {
-		return errors.New("no rows affected")
-	}
-	return nil
+func (s *TaskRepository) Delete(id int) error {
+	_, err := s.db.Exec(`DELETE FROM tasks WHERE id = $1`, id)
+	return err
 }
 
-func (s *TaskRepository) GetByID(id int) (model.Task, error) {
-	var t model.Task
-	query := `SELECT id, name, is_done FROM tasks WHERE id = $1`
-	err := s.db.QueryRow(query, id).Scan(&t.ID, &t.Name, &t.IsDone)
+func (s *TaskRepository) SelectByID(id int) (model.Task, error) {
+	var task model.Task
+	err := s.db.QueryRow(`SELECT id, user_id, title, description, due_date, priority, completed FROM tasks WHERE id = $1`, id).Scan(
+		&task.ID,
+		&task.UserID,
+		&task.Title,
+		&task.Description,
+		&task.DueDate,
+		&task.Priority,
+		&task.Completed,
+	)
 	if err != nil {
 		return model.Task{}, err
 	}
-	return t, nil
+	return task, nil
 }
 
-func (s *TaskRepository) GetAll() ([]model.Task, error) {
-	var tasks []model.Task
-	query := `SELECT id, name, is_done FROM tasks`
-	rows, err := s.db.Query(query)
+func (s *TaskRepository) SelectAll() ([]model.Task, error) {
+	rows, err := s.db.Query(`SELECT id, user_id, title, description, due_date, priority, completed FROM tasks`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
+
+	var tasks []model.Task
 	for rows.Next() {
-		var t model.Task
-		err = rows.Scan(&t.ID, &t.Name, &t.IsDone)
+		var task model.Task
+		err := rows.Scan(
+			&task.ID,
+			&task.UserID,
+			&task.Title,
+			&task.Description,
+			&task.DueDate,
+			&task.Priority,
+			&task.Completed,
+		)
 		if err != nil {
 			return nil, err
 		}
-		tasks = append(tasks, t)
+		tasks = append(tasks, task)
 	}
-	err = rows.Err()
-	if err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 	return tasks, nil
 }
 
 func (s *TaskRepository) Update(item model.Task) error {
-	query := `UPDATE tasks SET name = $1, is_done = $2 WHERE id = $3`
-	res, err := s.db.Exec(query, item.Name, item.IsDone, item.ID)
+	_, err := s.db.Exec(`UPDATE tasks SET user_id=$1,title=$2 ,description=$3,due_date=$4,priority=$5 ,completed=$6 WHERE id=$7`,
+		item.UserID, item.Title, item.Description, item.DueDate, item.Priority, item.Completed, item.ID)
+	return err
+}
+
+func (s *TaskRepository) SelectAllCompleted() ([]model.Task, error) {
+	rows, err := s.db.Query(`SELECT id,user_id,title ,description,due_date,priority ,completed FROM tasks WHERE completed=true`)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	count, err := res.RowsAffected()
-	if err != nil {
-		return err
+	defer rows.Close()
+
+	var tasks []model.Task
+	for rows.Next() {
+		var task model.Task
+		err := rows.Scan(
+			&task.ID,
+			&task.UserID,
+			&task.Title,
+			&task.Description,
+			&task.DueDate,
+			&task.Priority,
+			&task.Completed,
+		)
+		if err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, task)
 	}
-	if count == 0 {
-		return errors.New("no rows affected")
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
-	return nil
+	return tasks, nil
+
+}
+
+func (s *TaskRepository) MarkAllComplete() error {
+	_, err := s.db.Exec(`UPDATE tasks SET completed=true`)
+	return err
+
 }
