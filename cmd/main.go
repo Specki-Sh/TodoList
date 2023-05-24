@@ -8,22 +8,29 @@ import (
 	"os/signal"
 	"syscall"
 	"todolist"
+	"todolist/controller"
 	"todolist/db"
 	"todolist/handlers"
 	"todolist/repository"
-	"todolist/service"
 )
 
 func main() {
 	db.StartDbConnection()
 	defer db.CloseDbConnection()
 
-	storage := repository.NewTaskRepository(db.GetDBConn())
-	todoListService := service.NewTodoList(storage)
-	app := handlers.NewWebApp(todoListService)
+	TaskStorage := repository.NewTaskRepository(db.GetDBConn())
+	TaskController := controller.NewTaskController(TaskStorage)
+	TaskHandler := handlers.NewTaskHandler(TaskController)
+
+	UserStorage := repository.NewUserRepository(db.GetDBConn())
+	UserController := controller.NewUserController(UserStorage)
+	UserHandler := handlers.NewUserHandlers(UserController)
+
+	app := handlers.NewWebApp(TaskHandler, UserHandler)
+
 	srv := new(todolist.Server)
 	go func() {
-		if err := srv.Run("9191", app.Route()); err != nil {
+		if err := srv.Run("9191", app.SetupRoutes()); err != nil {
 			log.Fatalf("Error occured while running http server: %s", err.Error())
 			return
 		}
