@@ -18,13 +18,30 @@ const (
 )
 
 func createTable(db *sql.DB) error {
-	query := `CREATE TABLE IF NOT EXISTS tasks (
+	query := `CREATE TABLE users (
 		id SERIAL PRIMARY KEY,
 		name TEXT NOT NULL,
-		is_done BOOLEAN NOT NULL
+		email TEXT NOT NULL UNIQUE,
+		password TEXT NOT NULL
 	)`
-	_, err := db.Exec(query)
-	return err
+	if _, err := db.Exec(query); err != nil {
+		return err
+	}
+
+	query = `CREATE TABLE tasks (
+		id SERIAL PRIMARY KEY,
+		title TEXT NOT NULL,
+		description TEXT,
+		due_date TIMESTAMP,
+		priority INTEGER,
+		completed BOOLEAN NOT NULL DEFAULT FALSE,
+		user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE
+	)`
+	if _, err := db.Exec(query); err != nil {
+		return err
+	}
+	
+	return nil
 }
 
 func initDB() *sql.DB {
