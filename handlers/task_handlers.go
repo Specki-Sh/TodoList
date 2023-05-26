@@ -145,3 +145,28 @@ func (t *TaskHandlers) PatchCompeteStatus(c *gin.Context) {
 		c.String(http.StatusBadRequest, "Missing or invalid 'complete' query parameter")
 	}
 }
+
+func (t *TaskHandlers) PatchUserReassing(c *gin.Context) {
+	taskID := c.Param("id")
+	taskIDInt, err := strconv.Atoi(taskID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid task ID"})
+		return
+	}
+
+	var body struct {
+		UserID int `json:"user_id" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	task, err := t.taskController.ReassignUser(taskIDInt, body.UserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, task)
+}

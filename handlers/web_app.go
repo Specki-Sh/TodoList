@@ -31,6 +31,7 @@ func (w *WebApp) SetupRoutes() *gin.Engine {
 	t.GET("/completed", w.taskHandlers.GetCompleted)
 	t.PUT("/", w.taskHandlers.MarkAllComplete)
 	t.PATCH("/:id", validateIDParam, w.taskHandlers.PatchCompeteStatus)
+	t.PATCH("/:id/reassign", validateIDParam, w.taskHandlers.PatchUserReassing)
 	t.DELETE("/:id", validateIDParam, w.taskHandlers.Delete)
 
 	// User
