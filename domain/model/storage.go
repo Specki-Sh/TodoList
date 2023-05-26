@@ -8,6 +8,7 @@ type TaskStorage interface {
 	Update(item Task) error
 	SelectAllCompleted() ([]Task, error)
 	MarkAllComplete() error
+	ReassignUser(taskID int, newUserID int) (Task, error)
 }
 
 type UserStorage interface {

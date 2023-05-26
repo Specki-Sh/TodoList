@@ -115,5 +115,15 @@ func (s *TaskRepository) SelectAllCompleted() ([]model.Task, error) {
 func (s *TaskRepository) MarkAllComplete() error {
 	_, err := s.db.Exec(`UPDATE tasks SET completed=true`)
 	return err
+}
 
+func (s *TaskRepository) ReassignUser(taskID int, newUserID int) (model.Task, error) {
+	var task model.Task
+
+	err := s.db.QueryRow("SELECT * FROM reassign_user($1, $2)", taskID, newUserID).Scan(&task.ID, &task.Title, &task.Description, &task.DueDate, &task.Priority, &task.Completed, &task.UserID)
+	if err != nil {
+		return model.Task{}, err
+	}
+
+	return task, nil
 }
