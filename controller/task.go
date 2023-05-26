@@ -53,3 +53,7 @@ func (t *TaskController) MarkNotComplate(id int) error {
 func (t *TaskController) MarkAllComplete() error {
 	return t.storage.MarkAllComplete()
 }
+
+func (t *TaskController) ReassignUser(taskID int, newUserID int) (model.Task, error) {
+	return t.storage.ReassignUser(taskID, newUserID)
+}
