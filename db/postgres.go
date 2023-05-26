@@ -40,6 +40,20 @@ func createTable(db *sql.DB) error {
 		return err
 	}
 
+	query = `CREATE OR REPLACE FUNCTION reassign_user(task_id INTEGER, new_user_id INTEGER)
+		RETURNS tasks AS $$
+		DECLARE
+			updated_task tasks;
+		BEGIN
+			UPDATE tasks SET user_id = new_user_id WHERE id = task_id RETURNING * INTO updated_task;
+			RETURN updated_task;
+		END;
+		$$ LANGUAGE plpgsql;
+	`
+	if _, err := db.Exec(query); err != nil {
+		return err
+	}
+
 	return nil
 }
 
