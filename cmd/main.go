@@ -8,15 +8,19 @@ import (
 	"os/signal"
 	"syscall"
 	"todolist"
-	"todolist/service"
 	"todolist/db"
 	"todolist/handlers"
 	"todolist/repository"
+	"todolist/service"
 )
 
 func main() {
 	db.StartDbConnection()
 	defer db.CloseDbConnection()
+	if err := db.Up(); err != nil {
+		log.Fatalf("Error while migrating tables, err is: %s", err.Error())
+		return
+	}
 
 	TaskStorage := repository.NewTaskRepository(db.GetDBConn())
 	TaskService := service.NewTaskService(TaskStorage)
@@ -45,6 +49,6 @@ func main() {
 
 	fmt.Println("Shutting down")
 	if err := srv.Shutdown(context.Background()); err != nil {
-		fmt.Errorf("error occurred on server shutting down: %s", err.Error())
+		log.Fatalf("error occurred on server shutting down: %s", err.Error())
 	}
 }

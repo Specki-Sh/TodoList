@@ -32,3 +32,7 @@ func (u *UserService) Show(id int) (model.User, error) {
 func (u *UserService) ShowAll() ([]model.User, error) {
 	return u.storage.SelectAll()
 }
+
+func (u *UserService) ShowByEmailAndPassword(email string, password string) (model.User, error) {
+	return u.storage.SelectByEmailAndPassword(email, password)
+}
