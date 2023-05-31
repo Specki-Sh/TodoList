@@ -16,7 +16,7 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 
 func (s *UserRepository) Create(item model.User) (int, error) {
 	var id int
-	err := s.db.QueryRow(db.InsertUser, item.Name, item.Email, item.PasswordHash, item.Role).Scan(&id)
+	err := s.db.QueryRow(db.InsertUser, item.Name, item.Email, item.Password).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
@@ -24,7 +24,7 @@ func (s *UserRepository) Create(item model.User) (int, error) {
 }
 
 func (s *UserRepository) Update(item model.User) error {
-	_, err := s.db.Exec(db.UpdateByIDUser, item.Name, item.Email, item.PasswordHash, item.Role, item.ID)
+	_, err := s.db.Exec(db.UpdateByIDUser, item.Name, item.Email, item.Password, item.Role, item.ID)
 	return err
 }
 
@@ -35,7 +35,7 @@ func (s *UserRepository) Delete(id int) error {
 
 func (s *UserRepository) SelectByID(id int) (model.User, error) {
 	var user model.User
-	err := s.db.QueryRow(db.SelectByIDUser, id).Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.Role)
+	err := s.db.QueryRow(db.SelectByIDUser, id).Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.Role)
 	if err != nil {
 		return model.User{}, err
 	}
@@ -83,7 +83,7 @@ func (s *UserRepository) SelectAll() ([]model.User, error) {
 			task   model.Task
 		)
 
-		err := rows.Scan(&userID, &user.Name, &user.Email, &user.PasswordHash, &user.Role,
+		err := rows.Scan(&userID, &user.Name, &user.Email, &user.Password, &user.Role,
 			&taskID,
 			&sql.NullString{String: task.Title},
 			&sql.NullString{String: task.Description},
@@ -118,7 +118,7 @@ func (s *UserRepository) SelectAll() ([]model.User, error) {
 
 func (s *UserRepository) SelectByEmailAndPassword(email string, password string) (model.User, error) {
 	var user model.User
-	err := s.db.QueryRow(db.SelectByEmailAndPasswordUser, email, password).Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.Role)
+	err := s.db.QueryRow(db.SelectByEmailAndPasswordUser, email, password).Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.Role)
 	if err != nil {
 		return model.User{}, err
 	}

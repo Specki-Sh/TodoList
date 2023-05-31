@@ -30,7 +30,10 @@ func main() {
 	UserService := service.NewUserService(UserStorage)
 	UserHandler := handlers.NewUserHandlers(UserService)
 
-	app := handlers.NewWebApp(TaskHandler, UserHandler)
+	AuthService := service.NewAuthService(UserService)
+	AuthHandler := handlers.NewAuthHandler(AuthService)
+
+	app := handlers.NewWebApp(TaskHandler, UserHandler, AuthHandler)
 
 	srv := new(todolist.Server)
 	go func() {

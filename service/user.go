@@ -14,6 +14,7 @@ type UserService struct {
 }
 
 func (u *UserService) Add(user model.User) (int, error) {
+	user.Password = generatePasswordHash(user.Password)
 	return u.storage.Create(user)
 }
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	u "todolist/domain/use_cases"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -21,13 +22,18 @@ type tokenClaims struct {
 	Role   string `json:"role"`
 }
 
-type AuthService struct {
-	userService UserService
+func NewAuthService(userUseCase u.UserUseCase) *AuthService {
+	return &AuthService{userUseCase: userUseCase}
 }
 
-func (a *AuthService) GenerateToken(username, password string) (string, error) {
+type AuthService struct {
+	userUseCase u.UserUseCase
+}
+
+func (a *AuthService) Authenticate(email, password string) (string, error) {
 	password = generatePasswordHash(password)
-	user, err := a.userService.ShowByEmailAndPassword(username, password)
+	fmt.Println(email, password)
+	user, err := a.userUseCase.ShowByEmailAndPassword(email, password)
 	if err != nil {
 		return "", err
 	}
@@ -44,7 +50,7 @@ func (a *AuthService) GenerateToken(username, password string) (string, error) {
 	return token.SignedString([]byte(signingKey))
 }
 
-func ParseToken(accessToken string) (int, string, error) {
+func (a *AuthService) ParseToken(accessToken string) (int, string, error) {
 	token, err := jwt.ParseWithClaims(accessToken, &tokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("invalid signing method")

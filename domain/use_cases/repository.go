@@ -1,4 +1,4 @@
-package user_cases
+package use_cases
 
 import "todolist/domain/model"
 
@@ -7,6 +7,8 @@ type TaskRepository interface {
 	Delete(id int) error
 	SelectByID(id int) (model.Task, error)
 	SelectAll() ([]model.Task, error)
+	SelectAllByUserID(userID int) ([]model.Task, error)
+	SelectAllCompletedByUserID(userID int) ([]model.Task, error)
 	Update(item model.Task) error
 	SelectAllCompleted() ([]model.Task, error)
 	MarkAllComplete() error

@@ -110,7 +110,6 @@ func (s *TaskRepository) SelectAllCompleted() ([]model.Task, error) {
 		return nil, err
 	}
 	return tasks, nil
-
 }
 
 func (s *TaskRepository) MarkAllComplete() error {
@@ -127,4 +126,64 @@ func (s *TaskRepository) ReassignUser(taskID int, newUserID int) (model.Task, er
 	}
 
 	return task, nil
+}
+
+func (s *TaskRepository) SelectAllByUserID(userID int) ([]model.Task, error) {
+	rows, err := s.db.Query(db.SelectAllByUserIDTasks, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tasks []model.Task
+	for rows.Next() {
+		var task model.Task
+		err := rows.Scan(
+			&task.ID,
+			&task.UserID,
+			&task.Title,
+			&task.Description,
+			&task.DueDate,
+			&task.Priority,
+			&task.Completed,
+		)
+		if err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, task)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return tasks, nil
+}
+
+func (s *TaskRepository) SelectAllCompletedByUserID(userID int) ([]model.Task, error) {
+	rows, err := s.db.Query(db.SelectAllCompletedByUserIDTasks, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tasks []model.Task
+	for rows.Next() {
+		var task model.Task
+		err := rows.Scan(
+			&task.ID,
+			&task.UserID,
+			&task.Title,
+			&task.Description,
+			&task.DueDate,
+			&task.Priority,
+			&task.Completed,
+		)
+		if err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, task)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return tasks, nil
 }

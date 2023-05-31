@@ -21,8 +21,16 @@ func (t *TaskService) ShowCompleted() ([]model.Task, error) {
 	return t.storage.SelectAllCompleted()
 }
 
+func (t *TaskService) ShowCompletedByUserID(userID int) ([]model.Task, error) {
+	return t.storage.SelectAllCompletedByUserID(userID)
+}
+
 func (t *TaskService) ShowAll() ([]model.Task, error) {
 	return t.storage.SelectAll()
+}
+
+func (t *TaskService) ShowAllByUserID(userId int) ([]model.Task, error) {
+	return t.storage.SelectAllByUserID(userId)
 }
 
 func (t *TaskService) Show(id int) (model.Task, error) {
@@ -57,4 +65,12 @@ func (t *TaskService) MarkAllComplete() error {
 
 func (t *TaskService) ReassignUser(taskID int, newUserID int) (model.Task, error) {
 	return t.storage.ReassignUser(taskID, newUserID)
+}
+
+func (t *TaskService) IsTaskAssignedToUser(userID int, taskID int) (bool, error) {
+	task, err := t.Show(taskID)
+	if err != nil {
+		return false, err
+	}
+	return userID == task.UserID, nil
 }
