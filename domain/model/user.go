@@ -6,4 +6,5 @@ type User struct {
 	Email        string `json:"email"`
 	Tasks        []Task `json:"tasks"`
 	PasswordHash string `json:"password_hash"`
+	Role         string `json:"role"`
 }
