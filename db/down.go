@@ -5,9 +5,9 @@ import (
 )
 
 var dropTables = []string{
+	dropReasingUserFunction,
 	dropTasksTable,
 	dropUsersTable,
-	dropReasingUserFunction,
 }
 
 func Down() error {

@@ -4,20 +4,22 @@ package db
 const (
 	InsertTask = `INSERT INTO tasks (user_id, title, description, due_date, priority, completed) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
 
-	InsertUser = `INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id`
+	InsertUser = `INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id`
 )
 
 // SELECT
 const (
-	SelectByIDTask          = `SELECT id, user_id, title, description, due_date, priority, completed FROM tasks WHERE id=$1`
-	SelectAllTasks          = `SELECT id, user_id, title, description, due_date, priority, completed FROM tasks`
-	SelectAllCompletedTasks = `SELECT id, user_id, title, description, due_date, priority, completed FROM tasks WHERE completed=true`
-	SelectReassingUserTask  = `SELECT * FROM reassign_user($1, $2)`
-	SelectByUserIDTasks     = `SELECT id, user_id, title, description, due_date, priority, completed FROM tasks WHERE user_id = $1`
+	SelectByIDTask                  = `SELECT id, user_id, title, description, due_date, priority, completed FROM tasks WHERE id=$1`
+	SelectAllTasks                  = `SELECT id, user_id, title, description, due_date, priority, completed FROM tasks`
+	SelectAllCompletedTasks         = `SELECT id, user_id, title, description, due_date, priority, completed FROM tasks WHERE completed=true`
+	SelectReassingUserTask          = `SELECT * FROM reassign_user($1, $2)`
+	SelectByUserIDTasks             = `SELECT id, user_id, title, description, due_date, priority, completed FROM tasks WHERE user_id = $1`
+	SelectAllByUserIDTasks          = `SELECT id, user_id, title, description, due_date, priority, completed FROM tasks WHERE user_id = $1`
+	SelectAllCompletedByUserIDTasks = `SELECT id, user_id, title, description, due_date, priority, completed FROM tasks WHERE completed=true AND user_id=$1`
 
 	SelectByIDUser               = `SELECT id, name, email, password_hash, role FROM users WHERE id = $1`
 	SelectAllUsers               = `SELECT u.id, u.name, u.email, u.password_hash, u.role, t.id, t.title, t.description, t.due_date, t.priority, t.completed FROM users u LEFT JOIN tasks t ON u.id = t.user_id`
-	SelectByEmailAndPasswordUser = `SELECT id, name, email, password_hash, role FROM users WHERE name = $1 AND email = $2`
+	SelectByEmailAndPasswordUser = `SELECT id, name, email, password_hash, role FROM users WHERE email = $1 AND password_hash = $2`
 )
 
 // UPDATE
