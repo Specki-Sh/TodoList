@@ -3,22 +3,22 @@ package handlers
 import (
 	"net/http"
 	"strconv"
-	"todolist/service"
 	"todolist/domain/model"
+	u "todolist/domain/use_cases"
 
 	"github.com/gin-gonic/gin"
 )
 
-func NewTaskHandler(taskService *service.TaskService) *TaskHandlers {
-	return &TaskHandlers{taskService: taskService}
+func NewTaskHandler(taskUseCase u.TaskUseCase) *TaskHandlers {
+	return &TaskHandlers{taskUseCase: taskUseCase}
 }
 
 type TaskHandlers struct {
-	taskService *service.TaskService
+	taskUseCase u.TaskUseCase
 }
 
 func (t *TaskHandlers) MarkAllComplete(c *gin.Context) {
-	err := t.taskService.MarkAllComplete()
+	err := t.taskUseCase.MarkAllComplete()
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -39,7 +39,7 @@ func (t *TaskHandlers) MarkComplete(c *gin.Context) {
 		return
 	}
 
-	if err := t.taskService.MarkComplete(id); err != nil {
+	if err := t.taskUseCase.MarkComplete(id); err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -59,7 +59,7 @@ func (t *TaskHandlers) MarkNotComplete(c *gin.Context) {
 		return
 	}
 
-	if err := t.taskService.MarkNotComplate(id); err != nil {
+	if err := t.taskUseCase.MarkNotComplate(id); err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -79,7 +79,7 @@ func (t *TaskHandlers) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := t.taskService.Remove(id); err != nil {
+	if err := t.taskUseCase.Remove(id); err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -89,8 +89,18 @@ func (t *TaskHandlers) Delete(c *gin.Context) {
 	})
 }
 
-func (t *TaskHandlers) GetAll(c *gin.Context) {
-	allTasks, err := t.taskService.ShowAll()
+func (t *TaskHandlers) GetAllAdmin(c *gin.Context) {
+	allTasks, err := t.taskUseCase.ShowAll()
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, allTasks)
+}
+
+func (t *TaskHandlers) GetAllUser(c *gin.Context) {
+	userID, _ := GetUserId(c)
+	allTasks, err := t.taskUseCase.ShowAllByUserID(userID)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -99,7 +109,8 @@ func (t *TaskHandlers) GetAll(c *gin.Context) {
 }
 
 func (t *TaskHandlers) GetCompleted(c *gin.Context) {
-	doneTasks, err := t.taskService.ShowCompleted()
+	userId, _ := GetUserId(c)
+	doneTasks, err := t.taskUseCase.ShowCompletedByUserID(userId)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -107,13 +118,28 @@ func (t *TaskHandlers) GetCompleted(c *gin.Context) {
 	c.JSON(http.StatusOK, doneTasks)
 }
 
-func (t *TaskHandlers) Create(c *gin.Context) {
+func (t *TaskHandlers) CreateUsed(c *gin.Context) {
 	var task model.Task
 	if err := c.ShouldBindJSON(&task); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	id, err := t.taskService.AddTask(task)
+	task.UserID, _ = GetUserId(c)
+	id, err := t.taskUseCase.AddTask(task)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"id": id})
+}
+
+func (t *TaskHandlers) CreateAdmin(c *gin.Context) {
+	var task model.Task
+	if err := c.ShouldBindJSON(&task); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	id, err := t.taskUseCase.AddTask(task)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -127,7 +153,7 @@ func (t *TaskHandlers) GetByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	task, err := t.taskService.Show(id)
+	task, err := t.taskUseCase.Show(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -162,11 +188,34 @@ func (t *TaskHandlers) PatchUserReassing(c *gin.Context) {
 		return
 	}
 
-	task, err := t.taskService.ReassignUser(taskIDInt, body.UserID)
+	task, err := t.taskUseCase.ReassignUser(taskIDInt, body.UserID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, task)
+}
+
+func (t *TaskHandlers) TaskPermissionMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.GetBool("AdminPermission") {
+			c.Next()
+			return
+		}
+
+		taskID := c.Param("id")
+		taskIDInt, _ := strconv.Atoi(taskID)
+		userId, _ := GetUserId(c)
+		isTaskAssignedToUser, err := t.taskUseCase.IsTaskAssignedToUser(userId, taskIDInt)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Internal server error"})
+			return
+		}
+		if isTaskAssignedToUser {
+			c.Next()
+		} else {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "Access denied"})
+		}
+	}
 }

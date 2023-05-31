@@ -7,12 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func NewWebApp(taskHandlers *TaskHandlers, userHandlers *UserHandlers) *WebApp {
+func NewWebApp(taskHandlers *TaskHandlers, userHandlers *UserHandlers, authHandlers *AuthHandlers) *WebApp {
 	router := gin.Default()
 	return &WebApp{
 		router:       router,
 		taskHandlers: *taskHandlers,
 		userHandlers: *userHandlers,
+		authHandlers: *authHandlers,
 	}
 }
 
@@ -20,30 +21,42 @@ type WebApp struct {
 	router       *gin.Engine
 	taskHandlers TaskHandlers
 	userHandlers UserHandlers
+	authHandlers AuthHandlers
 }
 
 func (w *WebApp) SetupRoutes() *gin.Engine {
-	// Task
-	t := w.router.Group("/tasks")
+	// Task - user
+	t := w.router.Group("/tasks", w.authHandlers.userIdentity)
 	{
-		t.POST("/", w.taskHandlers.Create)
-		t.GET("/", w.taskHandlers.GetAll)
-		t.GET("/:id", validateIDParam, w.taskHandlers.GetByID)
+		t.POST("/", w.taskHandlers.CreateUsed)
+		t.GET("/", w.taskHandlers.GetAllUser)
 		t.GET("/completed", w.taskHandlers.GetCompleted)
-		t.PUT("/", w.taskHandlers.MarkAllComplete)
-		t.PATCH("/:id", validateIDParam, w.taskHandlers.PatchCompeteStatus)
-		t.PATCH("/:id/reassign", validateIDParam, w.taskHandlers.PatchUserReassing)
-		t.DELETE("/:id", validateIDParam, w.taskHandlers.Delete)
+	}
+	ta := w.router.Group("/tasks", w.authHandlers.userIdentity, w.authHandlers.AdminPermissionMiddleware())
+	{
+		ta.PATCH("/:id/reassign", validateIDParam, w.taskHandlers.PatchUserReassing)
+	}
+	tu := w.router.Group("/tasks", w.authHandlers.userIdentity, w.authHandlers.AdminPermissionMiddleware(), w.taskHandlers.TaskPermissionMiddleware())
+	{
+		tu.GET("/:id", validateIDParam, w.taskHandlers.GetByID)
+		tu.PATCH("/:id", validateIDParam, w.taskHandlers.PatchCompeteStatus)
+		tu.DELETE("/:id", validateIDParam, w.taskHandlers.Delete)
 	}
 
 	// User
-	u := w.router.Group("/users")
+	u := w.router.Group("/users", w.authHandlers.AdminPermissionMiddleware())
 	{
-		u.POST("/", w.userHandlers.Create)
 		u.GET("/", w.userHandlers.GetAll)
 		u.GET("/:id", validateIDParam, w.userHandlers.GetByID)
 		u.PUT("/:id", validateIDParam, w.userHandlers.Update)
 		u.DELETE("/:id", validateIDParam, w.userHandlers.Delete)
+	}
+
+	// auth
+	auth := w.router.Group("/auth")
+	{
+		auth.POST("/sign-up", w.userHandlers.SignUp)
+		auth.POST("/sign-in", w.authHandlers.SignIn)
 	}
 	return w.router
 }
@@ -60,4 +73,17 @@ func validateIDParam(c *gin.Context) {
 		}
 	}
 	c.Next()
+}
+
+func RoleMiddleware(adminHandler gin.HandlerFunc, userHandler gin.HandlerFunc) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		switch role, _ := GetUserRole(c); role {
+		case "admin":
+			adminHandler(c)
+		case "user":
+			userHandler(c)
+		default:
+			c.AbortWithStatus(http.StatusForbidden)
+		}
+	}
 }
