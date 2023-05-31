@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"todolist/db"
 	"todolist/domain/model"
 )
 
@@ -15,7 +16,7 @@ func NewTaskRepository(db *sql.DB) *TaskRepository {
 
 func (s *TaskRepository) Create(item model.Task) (int, error) {
 	var id int
-	err := s.db.QueryRow(`INSERT INTO tasks (user_id, title, description, due_date, priority, completed) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+	err := s.db.QueryRow(db.InsertTask,
 		item.UserID, item.Title, item.Description, item.DueDate, item.Priority, item.Completed).Scan(&id)
 	if err != nil {
 		return 0, err
@@ -24,13 +25,13 @@ func (s *TaskRepository) Create(item model.Task) (int, error) {
 }
 
 func (s *TaskRepository) Delete(id int) error {
-	_, err := s.db.Exec(`DELETE FROM tasks WHERE id = $1`, id)
+	_, err := s.db.Exec(db.DeleteByIDTask, id)
 	return err
 }
 
 func (s *TaskRepository) SelectByID(id int) (model.Task, error) {
 	var task model.Task
-	err := s.db.QueryRow(`SELECT id, user_id, title, description, due_date, priority, completed FROM tasks WHERE id = $1`, id).Scan(
+	err := s.db.QueryRow(db.SelectByIDTask, id).Scan(
 		&task.ID,
 		&task.UserID,
 		&task.Title,
@@ -46,7 +47,7 @@ func (s *TaskRepository) SelectByID(id int) (model.Task, error) {
 }
 
 func (s *TaskRepository) SelectAll() ([]model.Task, error) {
-	rows, err := s.db.Query(`SELECT id, user_id, title, description, due_date, priority, completed FROM tasks`)
+	rows, err := s.db.Query(db.SelectAllTasks)
 	if err != nil {
 		return nil, err
 	}
@@ -76,13 +77,13 @@ func (s *TaskRepository) SelectAll() ([]model.Task, error) {
 }
 
 func (s *TaskRepository) Update(item model.Task) error {
-	_, err := s.db.Exec(`UPDATE tasks SET user_id=$1,title=$2 ,description=$3,due_date=$4,priority=$5 ,completed=$6 WHERE id=$7`,
+	_, err := s.db.Exec(db.UpdateByIDTask,
 		item.UserID, item.Title, item.Description, item.DueDate, item.Priority, item.Completed, item.ID)
 	return err
 }
 
 func (s *TaskRepository) SelectAllCompleted() ([]model.Task, error) {
-	rows, err := s.db.Query(`SELECT id,user_id,title ,description,due_date,priority ,completed FROM tasks WHERE completed=true`)
+	rows, err := s.db.Query(db.SelectAllCompletedTasks)
 	if err != nil {
 		return nil, err
 	}
@@ -113,14 +114,14 @@ func (s *TaskRepository) SelectAllCompleted() ([]model.Task, error) {
 }
 
 func (s *TaskRepository) MarkAllComplete() error {
-	_, err := s.db.Exec(`UPDATE tasks SET completed=true`)
+	_, err := s.db.Exec(db.UpdateMakeAllCompletedTasks)
 	return err
 }
 
 func (s *TaskRepository) ReassignUser(taskID int, newUserID int) (model.Task, error) {
 	var task model.Task
 
-	err := s.db.QueryRow("SELECT * FROM reassign_user($1, $2)", taskID, newUserID).Scan(&task.ID, &task.Title, &task.Description, &task.DueDate, &task.Priority, &task.Completed, &task.UserID)
+	err := s.db.QueryRow(db.SelectReassingUserTask, taskID, newUserID).Scan(&task.ID, &task.Title, &task.Description, &task.DueDate, &task.Priority, &task.Completed, &task.UserID)
 	if err != nil {
 		return model.Task{}, err
 	}
