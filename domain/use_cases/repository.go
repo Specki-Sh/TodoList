@@ -19,4 +19,5 @@ type UserRepository interface {
 	Delete(id int) error
 	SelectByID(id int) (model.User, error)
 	SelectAll() ([]model.User, error)
+	SelectByEmailAndPassword(email string, password string) (model.User, error)
 }
