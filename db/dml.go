@@ -8,7 +8,7 @@ const (
 		name TEXT NOT NULL,
 		email TEXT NOT NULL UNIQUE,
 		password_hash VARCHAR NOT NULL,
-		role TEXT CHECK (role IN ('user', 'admin'))
+		role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin'))
 	);`
 	createTasksTable = `CREATE TABLE IF NOT EXISTS tasks 
 	(
