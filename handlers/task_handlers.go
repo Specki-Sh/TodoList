@@ -3,22 +3,22 @@ package handlers
 import (
 	"net/http"
 	"strconv"
-	"todolist/controller"
+	"todolist/service"
 	"todolist/domain/model"
 
 	"github.com/gin-gonic/gin"
 )
 
-func NewTaskHandler(taskController *controller.TaskController) *TaskHandlers {
-	return &TaskHandlers{taskController: taskController}
+func NewTaskHandler(taskService *service.TaskService) *TaskHandlers {
+	return &TaskHandlers{taskService: taskService}
 }
 
 type TaskHandlers struct {
-	taskController *controller.TaskController
+	taskService *service.TaskService
 }
 
 func (t *TaskHandlers) MarkAllComplete(c *gin.Context) {
-	err := t.taskController.MarkAllComplete()
+	err := t.taskService.MarkAllComplete()
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -39,7 +39,7 @@ func (t *TaskHandlers) MarkComplete(c *gin.Context) {
 		return
 	}
 
-	if err := t.taskController.MarkComplete(id); err != nil {
+	if err := t.taskService.MarkComplete(id); err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -59,7 +59,7 @@ func (t *TaskHandlers) MarkNotComplete(c *gin.Context) {
 		return
 	}
 
-	if err := t.taskController.MarkNotComplate(id); err != nil {
+	if err := t.taskService.MarkNotComplate(id); err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -79,7 +79,7 @@ func (t *TaskHandlers) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := t.taskController.Remove(id); err != nil {
+	if err := t.taskService.Remove(id); err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -90,7 +90,7 @@ func (t *TaskHandlers) Delete(c *gin.Context) {
 }
 
 func (t *TaskHandlers) GetAll(c *gin.Context) {
-	allTasks, err := t.taskController.ShowAll()
+	allTasks, err := t.taskService.ShowAll()
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -99,7 +99,7 @@ func (t *TaskHandlers) GetAll(c *gin.Context) {
 }
 
 func (t *TaskHandlers) GetCompleted(c *gin.Context) {
-	doneTasks, err := t.taskController.ShowCompleted()
+	doneTasks, err := t.taskService.ShowCompleted()
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -113,7 +113,7 @@ func (t *TaskHandlers) Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	id, err := t.taskController.AddTask(task)
+	id, err := t.taskService.AddTask(task)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -127,7 +127,7 @@ func (t *TaskHandlers) GetByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	task, err := t.taskController.Show(id)
+	task, err := t.taskService.Show(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -162,7 +162,7 @@ func (t *TaskHandlers) PatchUserReassing(c *gin.Context) {
 		return
 	}
 
-	task, err := t.taskController.ReassignUser(taskIDInt, body.UserID)
+	task, err := t.taskService.ReassignUser(taskIDInt, body.UserID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

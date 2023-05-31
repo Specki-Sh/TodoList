@@ -3,18 +3,18 @@ package handlers
 import (
 	"net/http"
 	"strconv"
-	"todolist/controller"
+	"todolist/service"
 	"todolist/domain/model"
 
 	"github.com/gin-gonic/gin"
 )
 
-func NewUserHandlers(userController *controller.UserController) *UserHandlers {
-	return &UserHandlers{userController: userController}
+func NewUserHandlers(userService *service.UserService) *UserHandlers {
+	return &UserHandlers{userService: userService}
 }
 
 type UserHandlers struct {
-	userController *controller.UserController
+	userService *service.UserService
 }
 
 func (u *UserHandlers) Create(c *gin.Context) {
@@ -23,7 +23,7 @@ func (u *UserHandlers) Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	id, err := u.userController.Add(user)
+	id, err := u.userService.Add(user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -43,7 +43,7 @@ func (u *UserHandlers) Update(c *gin.Context) {
 		return
 	}
 	user.ID = id
-	if err := u.userController.Edit(user); err != nil {
+	if err := u.userService.Edit(user); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -56,7 +56,7 @@ func (u *UserHandlers) Delete(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := u.userController.Remove(id); err != nil {
+	if err := u.userService.Remove(id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -69,7 +69,7 @@ func (u *UserHandlers) GetByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	user, err := u.userController.Show(id)
+	user, err := u.userService.Show(id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -78,7 +78,7 @@ func (u *UserHandlers) GetByID(c *gin.Context) {
 }
 
 func (u *UserHandlers) GetAll(c *gin.Context) {
-	users, err := u.userController.ShowAll()
+	users, err := u.userService.ShowAll()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

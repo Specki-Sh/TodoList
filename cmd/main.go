@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 	"todolist"
-	"todolist/controller"
+	"todolist/service"
 	"todolist/db"
 	"todolist/handlers"
 	"todolist/repository"
@@ -19,12 +19,12 @@ func main() {
 	defer db.CloseDbConnection()
 
 	TaskStorage := repository.NewTaskRepository(db.GetDBConn())
-	TaskController := controller.NewTaskController(TaskStorage)
-	TaskHandler := handlers.NewTaskHandler(TaskController)
+	TaskService := service.NewTaskService(TaskStorage)
+	TaskHandler := handlers.NewTaskHandler(TaskService)
 
 	UserStorage := repository.NewUserRepository(db.GetDBConn())
-	UserController := controller.NewUserController(UserStorage)
-	UserHandler := handlers.NewUserHandlers(UserController)
+	UserService := service.NewUserService(UserStorage)
+	UserHandler := handlers.NewUserHandlers(UserService)
 
 	app := handlers.NewWebApp(TaskHandler, UserHandler)
 
