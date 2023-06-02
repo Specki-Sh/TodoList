@@ -1,14 +1,13 @@
 package db
 
 import (
-	"database/sql"
 	"fmt"
-	"log"
 
-	_ "github.com/lib/pq"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
-var database *sql.DB
+var database *gorm.DB
 
 const (
 	host     = "localhost"
@@ -18,17 +17,13 @@ const (
 	dbname   = "mydb"
 )
 
-func initDB() *sql.DB {
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
-	db, err := sql.Open("postgres", psqlInfo)
+func initDB() *gorm.DB {
+	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
 
-	if err != nil {
-		log.Fatal("Couldn't connect to database", err.Error())
-	}
-	
 	return db
 }
 
@@ -38,13 +33,18 @@ func StartDbConnection() {
 }
 
 // GetDBConn func for getting db conn globally
-func GetDBConn() *sql.DB {
+func GetDBConn() *gorm.DB {
 	return database
 }
 
 func CloseDbConnection() error {
-	if err := GetDBConn().Close(); err != nil {
+	db, err := database.DB()
+	if err != nil {
+		return fmt.Errorf("error occurred on database connection closing: %s", err.Error())
+	}
+	if err := db.Close(); err != nil {
 		return fmt.Errorf("error occurred on database connection closing: %s", err.Error())
 	}
 	return nil
 }
+
