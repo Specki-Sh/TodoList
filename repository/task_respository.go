@@ -1,189 +1,118 @@
 package repository
 
 import (
-	"database/sql"
-	"todolist/db"
+	"todolist/db/model"
 	"todolist/domain/entity"
+
+	"gorm.io/gorm"
 )
 
 type TaskRepository struct {
-	db *sql.DB
+	db *gorm.DB
 }
 
-func NewTaskRepository(db *sql.DB) *TaskRepository {
+func NewTaskRepository(db *gorm.DB) *TaskRepository {
 	return &TaskRepository{db: db}
 }
 
 func (s *TaskRepository) Create(item entity.Task) (int, error) {
-	var id int
-	err := s.db.QueryRow(db.InsertTask,
-		item.UserID, item.Title, item.Description, item.DueDate, item.Priority, item.Completed).Scan(&id)
-	if err != nil {
-		return 0, err
+	taskModel := model.NewTaskModelFromEntity(item)
+	result := s.db.Create(&taskModel)
+	if result.Error != nil {
+		return 0, result.Error
 	}
-	return id, nil
+	return int(taskModel.ID), nil
 }
 
 func (s *TaskRepository) Delete(id int) error {
-	_, err := s.db.Exec(db.DeleteByIDTask, id)
-	return err
+	result := s.db.Delete(&model.TaskModel{}, id)
+	return result.Error
 }
 
 func (s *TaskRepository) SelectByID(id int) (entity.Task, error) {
-	var task entity.Task
-	err := s.db.QueryRow(db.SelectByIDTask, id).Scan(
-		&task.ID,
-		&task.UserID,
-		&task.Title,
-		&task.Description,
-		&task.DueDate,
-		&task.Priority,
-		&task.Completed,
-	)
-	if err != nil {
-		return entity.Task{}, err
+	var taskModel model.TaskModel
+	result := s.db.First(&taskModel, id)
+	if result.Error != nil {
+		return entity.Task{}, result.Error
 	}
-	return task, nil
+	return taskModel.ToEntity(), nil
 }
 
 func (s *TaskRepository) SelectAll() ([]entity.Task, error) {
-	rows, err := s.db.Query(db.SelectAllTasks)
-	if err != nil {
-		return nil, err
+	var taskModels []model.TaskModel
+	result := s.db.Find(&taskModels)
+	if result.Error != nil {
+		return nil, result.Error
 	}
-	defer rows.Close()
-
-	var tasks []entity.Task
-	for rows.Next() {
-		var task entity.Task
-		err := rows.Scan(
-			&task.ID,
-			&task.UserID,
-			&task.Title,
-			&task.Description,
-			&task.DueDate,
-			&task.Priority,
-			&task.Completed,
-		)
-		if err != nil {
-			return nil, err
-		}
-		tasks = append(tasks, task)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
+	tasks := make([]entity.Task, len(taskModels))
+	for i, taskModel := range taskModels {
+		tasks[i] = taskModel.ToEntity()
 	}
 	return tasks, nil
 }
 
 func (s *TaskRepository) Update(item entity.Task) error {
-	_, err := s.db.Exec(db.UpdateByIDTask,
-		item.UserID, item.Title, item.Description, item.DueDate, item.Priority, item.Completed, item.ID)
-	return err
+	taskModel := model.NewTaskModelFromEntity(item)
+	result := s.db.Save(&taskModel)
+	return result.Error
 }
 
 func (s *TaskRepository) SelectAllCompleted() ([]entity.Task, error) {
-	rows, err := s.db.Query(db.SelectAllCompletedTasks)
-	if err != nil {
-		return nil, err
+	var taskModels []model.TaskModel
+	result := s.db.Where("completed = ?", true).Find(&taskModels)
+	if result.Error != nil {
+		return nil, result.Error
 	}
-	defer rows.Close()
-
-	var tasks []entity.Task
-	for rows.Next() {
-		var task entity.Task
-		err := rows.Scan(
-			&task.ID,
-			&task.UserID,
-			&task.Title,
-			&task.Description,
-			&task.DueDate,
-			&task.Priority,
-			&task.Completed,
-		)
-		if err != nil {
-			return nil, err
-		}
-		tasks = append(tasks, task)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
+	tasks := make([]entity.Task, len(taskModels))
+	for i, taskModel := range taskModels {
+		tasks[i] = taskModel.ToEntity()
 	}
 	return tasks, nil
 }
 
 func (s *TaskRepository) MarkAllComplete() error {
-	_, err := s.db.Exec(db.UpdateMakeAllCompletedTasks)
-	return err
+	result := s.db.Model(&model.TaskModel{}).Where("completed = ?", false).Update("completed", true)
+	return result.Error
 }
 
 func (s *TaskRepository) ReassignUser(taskID int, newUserID int) (entity.Task, error) {
-	var task entity.Task
+	var taskModel model.TaskModel
 
-	err := s.db.QueryRow(db.SelectReassingUserTask, taskID, newUserID).Scan(&task.ID, &task.Title, &task.Description, &task.DueDate, &task.Priority, &task.Completed, &task.UserID)
-	if err != nil {
-		return entity.Task{}, err
+	result := s.db.Model(&taskModel).Where("id = ?", taskID).Update("user_id", newUserID)
+	if result.Error != nil {
+		return entity.Task{}, result.Error
 	}
 
-	return task, nil
+	result = s.db.First(&taskModel, taskID)
+	if result.Error != nil {
+		return entity.Task{}, result.Error
+	}
+
+	return taskModel.ToEntity(), nil
 }
 
 func (s *TaskRepository) SelectAllByUserID(userID int) ([]entity.Task, error) {
-	rows, err := s.db.Query(db.SelectAllByUserIDTasks, userID)
-	if err != nil {
-		return nil, err
+	var taskModels []model.TaskModel
+	result := s.db.Where("user_id = ?", userID).Find(&taskModels)
+	if result.Error != nil {
+		return nil, result.Error
 	}
-	defer rows.Close()
-
-	var tasks []entity.Task
-	for rows.Next() {
-		var task entity.Task
-		err := rows.Scan(
-			&task.ID,
-			&task.UserID,
-			&task.Title,
-			&task.Description,
-			&task.DueDate,
-			&task.Priority,
-			&task.Completed,
-		)
-		if err != nil {
-			return nil, err
-		}
-		tasks = append(tasks, task)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
+	tasks := make([]entity.Task, len(taskModels))
+	for i, taskModel := range taskModels {
+		tasks[i] = taskModel.ToEntity()
 	}
 	return tasks, nil
 }
 
 func (s *TaskRepository) SelectAllCompletedByUserID(userID int) ([]entity.Task, error) {
-	rows, err := s.db.Query(db.SelectAllCompletedByUserIDTasks, userID)
-	if err != nil {
-		return nil, err
+	var taskModels []model.TaskModel
+	result := s.db.Where("user_id = ? AND completed = ?", userID, true).Find(&taskModels)
+	if result.Error != nil {
+		return nil, result.Error
 	}
-	defer rows.Close()
-
-	var tasks []entity.Task
-	for rows.Next() {
-		var task entity.Task
-		err := rows.Scan(
-			&task.ID,
-			&task.UserID,
-			&task.Title,
-			&task.Description,
-			&task.DueDate,
-			&task.Priority,
-			&task.Completed,
-		)
-		if err != nil {
-			return nil, err
-		}
-		tasks = append(tasks, task)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
+	tasks := make([]entity.Task, len(taskModels))
+	for i, taskModel := range taskModels {
+		tasks[i] = taskModel.ToEntity()
 	}
 	return tasks, nil
 }
