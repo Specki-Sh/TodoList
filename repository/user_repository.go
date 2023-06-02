@@ -1,151 +1,78 @@
 package repository
 
 import (
-	"database/sql"
-	"todolist/db"
+	"todolist/db/model"
 	"todolist/domain/entity"
+
+	"gorm.io/gorm"
 )
 
 type UserRepository struct {
-	db *sql.DB
+	db *gorm.DB
 }
 
-func NewUserRepository(db *sql.DB) *UserRepository {
+func NewUserRepository(db *gorm.DB) *UserRepository {
 	return &UserRepository{db: db}
 }
 
 func (s *UserRepository) Create(item entity.User) (int, error) {
-	var id int
-	err := s.db.QueryRow(db.InsertUser, item.Name, item.Email, item.Password).Scan(&id)
-	if err != nil {
-		return 0, err
+	userModel := model.NewUserModelFromEntity(item)
+	result := s.db.Create(&userModel)
+	if result.Error != nil {
+		return 0, result.Error
 	}
-	return id, nil
+	return int(userModel.ID), nil
 }
 
 func (s *UserRepository) Update(item entity.User) error {
-	_, err := s.db.Exec(db.UpdateByIDUser, item.Name, item.Email, item.Password, item.Role, item.ID)
-	return err
+	userModel := model.NewUserModelFromEntity(item)
+	result := s.db.Save(&userModel)
+	return result.Error
 }
 
 func (s *UserRepository) Delete(id int) error {
-	_, err := s.db.Exec(db.DeleteByIDUser, id)
-	return err
+	result := s.db.Delete(&model.UserModel{}, id)
+	return result.Error
 }
 
 func (s *UserRepository) SelectByID(id int) (entity.User, error) {
-	var user entity.User
-	err := s.db.QueryRow(db.SelectByIDUser, id).Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.Role)
-	if err != nil {
-		return entity.User{}, err
+	var userModel model.UserModel
+	result := s.db.Preload("Tasks").First(&userModel, id)
+	if result.Error != nil {
+		return entity.User{}, result.Error
 	}
-	rows, err := s.db.Query(db.SelectByUserIDTasks, id)
-	if err != nil {
-		return entity.User{}, err
+	userEntity := userModel.ToEntity()
+	for _, taskModel := range userModel.Tasks {
+		userEntity.Tasks = append(userEntity.Tasks, taskModel.ToEntity())
 	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var task entity.Task
-		err := rows.Scan(
-			&task.ID,
-			&task.UserID,
-			&task.Title,
-			&task.Description,
-			&task.DueDate,
-			&task.Priority,
-			&task.Completed,
-		)
-		if err != nil {
-			return entity.User{}, err
-		}
-		user.Tasks = append(user.Tasks, task)
-	}
-	if err := rows.Err(); err != nil {
-		return entity.User{}, err
-	}
-	return user, nil
+	return userEntity, nil
 }
 
 func (s *UserRepository) SelectAll() ([]entity.User, error) {
-	rows, err := s.db.Query(db.SelectAllUsers)
-	if err != nil {
-		return nil, err
+	var userModels []model.UserModel
+	result := s.db.Preload("Tasks").Find(&userModels)
+	if result.Error != nil {
+		return nil, result.Error
 	}
-	defer rows.Close()
-
-	usersMap := make(map[int]*entity.User)
-	for rows.Next() {
-		var (
-			userID int
-			taskID sql.NullInt64
-			user   entity.User
-			task   entity.Task
-		)
-
-		err := rows.Scan(&userID, &user.Name, &user.Email, &user.Password, &user.Role,
-			&taskID,
-			&sql.NullString{String: task.Title},
-			&sql.NullString{String: task.Description},
-			&sql.NullTime{Time: task.DueDate},
-			&sql.NullInt64{Int64: int64(task.Priority)},
-			&sql.NullBool{Bool: task.Completed})
-		if err != nil {
-			return nil, err
+	users := make([]entity.User, len(userModels))
+	for i, userModel := range userModels {
+		users[i] = userModel.ToEntity()
+		for _, taskModel := range userModel.Tasks {
+			users[i].Tasks = append(users[i].Tasks, taskModel.ToEntity())
 		}
-
-		if _, ok := usersMap[userID]; !ok {
-			user.ID = userID
-			usersMap[userID] = &user
-		}
-
-		if taskID.Valid {
-			task.ID = int(taskID.Int64)
-			usersMap[userID].Tasks = append(usersMap[userID].Tasks, task)
-		}
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	var users []entity.User
-	for _, user := range usersMap {
-		users = append(users, *user)
 	}
 	return users, nil
 }
 
 func (s *UserRepository) SelectByEmailAndPassword(email string, password string) (entity.User, error) {
-	var user entity.User
-	err := s.db.QueryRow(db.SelectByEmailAndPasswordUser, email, password).Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.Role)
-	if err != nil {
-		return entity.User{}, err
+	var userModel model.UserModel
+	result := s.db.Where("email = ? AND password_hash = ?", email, password).Preload("Tasks").First(&userModel)
+	if result.Error != nil {
+		return entity.User{}, result.Error
 	}
-	rows, err := s.db.Query(db.SelectByUserIDTasks, user.ID)
-	if err != nil {
-		return entity.User{}, err
+	userEntity := userModel.ToEntity()
+	for _, taskModel := range userModel.Tasks {
+		userEntity.Tasks = append(userEntity.Tasks, taskModel.ToEntity())
 	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var task entity.Task
-		err := rows.Scan(
-			&task.ID,
-			&task.UserID,
-			&task.Title,
-			&task.Description,
-			&task.DueDate,
-			&task.Priority,
-			&task.Completed,
-		)
-		if err != nil {
-			return entity.User{}, err
-		}
-		user.Tasks = append(user.Tasks, task)
-	}
-	if err := rows.Err(); err != nil {
-		return entity.User{}, err
-	}
-	return user, nil
+	return userEntity, nil
 }
