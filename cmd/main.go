@@ -17,7 +17,7 @@ import (
 func main() {
 	db.StartDbConnection()
 	defer db.CloseDbConnection()
-	if err := db.Up(); err != nil {
+	if err := db.Migrate(db.GetDBConn()); err != nil {
 		log.Fatalf("Error while migrating tables, err is: %s", err.Error())
 		return
 	}
