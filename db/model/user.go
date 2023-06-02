@@ -3,12 +3,12 @@ package model
 import "todolist/domain/entity"
 
 type UserModel struct {
-	ID           uint   `gorm:"primaryKey"`
-	Name         string `gorm:"not null"`
-	Email        string `gorm:"unique;not null"`
-	PasswordHash string `gorm:"not null"`
-	Role         string `gorm:"default:user;check:role IN ('user', 'admin')"`
-	Tasks        []TaskModel
+	ID           uint        `gorm:"primaryKey"`
+	Name         string      `gorm:"not null"`
+	Email        string      `gorm:"unique;not null"`
+	PasswordHash string      `gorm:"not null"`
+	Role         string      `gorm:"default:user;check:role IN ('user', 'admin')"`
+	Tasks        []TaskModel `gorm:"foreignKey:UserID"`
 }
 
 func (m *UserModel) ToEntity() entity.User {
