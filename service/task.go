@@ -1,7 +1,7 @@
 package service
 
 import (
-	"todolist/domain/model"
+	"todolist/domain/entity"
 	u "todolist/domain/use_cases"
 )
 
@@ -13,27 +13,27 @@ type TaskService struct {
 	storage u.TaskRepository
 }
 
-func (t *TaskService) AddTask(task model.Task) (int, error) {
+func (t *TaskService) AddTask(task entity.Task) (int, error) {
 	return t.storage.Create(task)
 }
 
-func (t *TaskService) ShowCompleted() ([]model.Task, error) {
+func (t *TaskService) ShowCompleted() ([]entity.Task, error) {
 	return t.storage.SelectAllCompleted()
 }
 
-func (t *TaskService) ShowCompletedByUserID(userID int) ([]model.Task, error) {
+func (t *TaskService) ShowCompletedByUserID(userID int) ([]entity.Task, error) {
 	return t.storage.SelectAllCompletedByUserID(userID)
 }
 
-func (t *TaskService) ShowAll() ([]model.Task, error) {
+func (t *TaskService) ShowAll() ([]entity.Task, error) {
 	return t.storage.SelectAll()
 }
 
-func (t *TaskService) ShowAllByUserID(userId int) ([]model.Task, error) {
+func (t *TaskService) ShowAllByUserID(userId int) ([]entity.Task, error) {
 	return t.storage.SelectAllByUserID(userId)
 }
 
-func (t *TaskService) Show(id int) (model.Task, error) {
+func (t *TaskService) Show(id int) (entity.Task, error) {
 	return t.storage.SelectByID(id)
 }
 
@@ -63,7 +63,7 @@ func (t *TaskService) MarkAllComplete() error {
 	return t.storage.MarkAllComplete()
 }
 
-func (t *TaskService) ReassignUser(taskID int, newUserID int) (model.Task, error) {
+func (t *TaskService) ReassignUser(taskID int, newUserID int) (entity.Task, error) {
 	return t.storage.ReassignUser(taskID, newUserID)
 }
 
