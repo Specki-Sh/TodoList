@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
-	"todolist/domain/model"
+	"todolist/domain/entity"
 	u "todolist/domain/use_cases"
 
 	"github.com/gin-gonic/gin"
@@ -119,7 +119,7 @@ func (t *TaskHandlers) GetCompleted(c *gin.Context) {
 }
 
 func (t *TaskHandlers) CreateUsed(c *gin.Context) {
-	var task model.Task
+	var task entity.Task
 	if err := c.ShouldBindJSON(&task); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -134,7 +134,7 @@ func (t *TaskHandlers) CreateUsed(c *gin.Context) {
 }
 
 func (t *TaskHandlers) CreateAdmin(c *gin.Context) {
-	var task model.Task
+	var task entity.Task
 	if err := c.ShouldBindJSON(&task); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

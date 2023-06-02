@@ -1,25 +1,25 @@
 package use_cases
 
-import "todolist/domain/model"
+import "todolist/domain/entity"
 
 type TaskRepository interface {
-	Create(item model.Task) (int, error)
+	Create(item entity.Task) (int, error)
 	Delete(id int) error
-	SelectByID(id int) (model.Task, error)
-	SelectAll() ([]model.Task, error)
-	SelectAllByUserID(userID int) ([]model.Task, error)
-	SelectAllCompletedByUserID(userID int) ([]model.Task, error)
-	Update(item model.Task) error
-	SelectAllCompleted() ([]model.Task, error)
+	SelectByID(id int) (entity.Task, error)
+	SelectAll() ([]entity.Task, error)
+	SelectAllByUserID(userID int) ([]entity.Task, error)
+	SelectAllCompletedByUserID(userID int) ([]entity.Task, error)
+	Update(item entity.Task) error
+	SelectAllCompleted() ([]entity.Task, error)
 	MarkAllComplete() error
-	ReassignUser(taskID int, newUserID int) (model.Task, error)
+	ReassignUser(taskID int, newUserID int) (entity.Task, error)
 }
 
 type UserRepository interface {
-	Create(item model.User) (int, error)
-	Update(item model.User) error
+	Create(item entity.User) (int, error)
+	Update(item entity.User) error
 	Delete(id int) error
-	SelectByID(id int) (model.User, error)
-	SelectAll() ([]model.User, error)
-	SelectByEmailAndPassword(email string, password string) (model.User, error)
+	SelectByID(id int) (entity.User, error)
+	SelectAll() ([]entity.User, error)
+	SelectByEmailAndPassword(email string, password string) (entity.User, error)
 }

@@ -1,12 +1,12 @@
 package use_cases
 
-import "todolist/domain/model"
+import "todolist/domain/entity"
 
 type UserUseCase interface {
-	Add(user model.User) (int, error)
-	Edit(user model.User) error
+	Add(user entity.User) (int, error)
+	Edit(user entity.User) error
 	Remove(id int) error
-	Show(id int) (model.User, error)
-	ShowAll() ([]model.User, error)
-	ShowByEmailAndPassword(email string, password string) (model.User, error)
+	Show(id int) (entity.User, error)
+	ShowAll() ([]entity.User, error)
+	ShowByEmailAndPassword(email string, password string) (entity.User, error)
 }

@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
-	"todolist/domain/model"
+	"todolist/domain/entity"
 	u "todolist/domain/use_cases"
 
 	"github.com/gin-gonic/gin"
@@ -18,7 +18,7 @@ type UserHandlers struct {
 }
 
 func (u *UserHandlers) SignUp(c *gin.Context) {
-	var user model.User
+	var user entity.User
 	if err := c.ShouldBindJSON(&user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -37,7 +37,7 @@ func (u *UserHandlers) Update(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	var user model.User
+	var user entity.User
 	if err := c.ShouldBindJSON(&user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

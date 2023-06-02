@@ -1,18 +1,18 @@
 package use_cases
 
-import "todolist/domain/model"
+import "todolist/domain/entity"
 
 type TaskUseCase interface {
-	AddTask(task model.Task) (int, error)
-	ShowCompleted() ([]model.Task, error)
-	ShowCompletedByUserID(userID int) ([]model.Task, error)
-	ShowAll() ([]model.Task, error)
-	ShowAllByUserID(userId int) ([]model.Task, error)
-	Show(id int) (model.Task, error)
+	AddTask(task entity.Task) (int, error)
+	ShowCompleted() ([]entity.Task, error)
+	ShowCompletedByUserID(userID int) ([]entity.Task, error)
+	ShowAll() ([]entity.Task, error)
+	ShowAllByUserID(userId int) ([]entity.Task, error)
+	Show(id int) (entity.Task, error)
 	Remove(id int) error
 	MarkComplete(id int) error
 	MarkNotComplate(id int) error
 	MarkAllComplete() error
-	ReassignUser(taskID int, newUserID int) (model.Task, error)
+	ReassignUser(taskID int, newUserID int) (entity.Task, error)
 	IsTaskAssignedToUser(userID int, taskID int) (bool, error)
 }
