@@ -17,13 +17,27 @@ import (
 func main() {
 	db.StartDbConnection()
 	defer db.CloseDbConnection()
+	if err := db.Migrate(db.GetDBConn()); err != nil {
+		log.Fatalf("Error while migrating tables, err is: %s", err.Error())
+		return
+	}
 
-	storage := repository.NewTaskRepository(db.GetDBConn())
-	todoListService := service.NewTodoList(storage)
-	app := handlers.NewWebApp(todoListService)
+	TaskStorage := repository.NewTaskRepository(db.GetDBConn())
+	TaskService := service.NewTaskService(TaskStorage)
+	TaskHandler := handlers.NewTaskHandler(TaskService)
+
+	UserStorage := repository.NewUserRepository(db.GetDBConn())
+	UserService := service.NewUserService(UserStorage)
+	UserHandler := handlers.NewUserHandlers(UserService)
+
+	AuthService := service.NewAuthService(UserService)
+	AuthHandler := handlers.NewAuthHandler(AuthService)
+
+	app := handlers.NewWebApp(TaskHandler, UserHandler, AuthHandler)
+
 	srv := new(todolist.Server)
 	go func() {
-		if err := srv.Run("9191", app.Route()); err != nil {
+		if err := srv.Run("9191", app.SetupRoutes()); err != nil {
 			log.Fatalf("Error occured while running http server: %s", err.Error())
 			return
 		}
@@ -38,6 +52,6 @@ func main() {
 
 	fmt.Println("Shutting down")
 	if err := srv.Shutdown(context.Background()); err != nil {
-		fmt.Errorf("error occurred on server shutting down: %s", err.Error())
+		log.Fatalf("error occurred on server shutting down: %s", err.Error())
 	}
 }

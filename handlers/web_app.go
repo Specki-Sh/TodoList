@@ -3,155 +3,62 @@ package handlers
 import (
 	"net/http"
 	"regexp"
-	"strconv"
-	"todolist/domain/model"
-	"todolist/service"
 
 	"github.com/gin-gonic/gin"
 )
 
-type TaskData struct {
-	Name string
-}
-
-func NewWebApp(todoList *service.TodoList) *WebApp {
+func NewWebApp(taskHandlers *TaskHandlers, userHandlers *UserHandlers, authHandlers *AuthHandlers) *WebApp {
 	router := gin.Default()
 	return &WebApp{
-		todoList: todoList,
-		router:   router,
+		router:       router,
+		taskHandlers: *taskHandlers,
+		userHandlers: *userHandlers,
+		authHandlers: *authHandlers,
 	}
 }
 
 type WebApp struct {
-	todoList *service.TodoList
-	router   *gin.Engine
+	router       *gin.Engine
+	taskHandlers TaskHandlers
+	userHandlers UserHandlers
+	authHandlers AuthHandlers
 }
 
-func (w *WebApp) HandleMarkAllComplete(c *gin.Context) {
-	err := w.todoList.MarkAllComplete()
-	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
+func (w *WebApp) SetupRoutes() *gin.Engine {
+	// Task - user
+	t := w.router.Group("/tasks", w.authHandlers.userIdentity)
+	{
+		t.POST("/", w.taskHandlers.CreateUsed)
+		t.GET("/", w.taskHandlers.GetAllUser)
+		t.GET("/completed", w.taskHandlers.GetCompleted)
+	}
+	ta := w.router.Group("/tasks", w.authHandlers.userIdentity, w.authHandlers.AdminPermissionMiddleware())
+	{
+		ta.PATCH("/:id/reassign", validateIDParam, w.taskHandlers.PatchUserReassing)
+	}
+	tu := w.router.Group("/tasks", w.authHandlers.userIdentity, w.authHandlers.AdminPermissionMiddleware(), w.taskHandlers.TaskPermissionMiddleware())
+	{
+		tu.GET("/:id", validateIDParam, w.taskHandlers.GetByID)
+		tu.PATCH("/:id", validateIDParam, w.taskHandlers.PatchCompeteStatus)
+		tu.DELETE("/:id", validateIDParam, w.taskHandlers.Delete)
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Success",
-	})
-}
+	// User
+	u := w.router.Group("/users", w.authHandlers.AdminPermissionMiddleware())
+	{
+		u.GET("/", w.userHandlers.GetAll)
+		u.GET("/:id", validateIDParam, w.userHandlers.GetByID)
+		u.PUT("/:id", validateIDParam, w.userHandlers.Update)
+		u.DELETE("/:id", validateIDParam, w.userHandlers.Delete)
+	}
 
-func (w *WebApp) Route() *gin.Engine {
-	t := w.router.Group("/tasks")
-	t.POST("/", w.HandleAdd)
-	t.GET("/", w.HandleShowAll)
-	t.PUT("/", w.HandleMarkAllComplete)
-	t.GET("/doned", w.HandleShowDone)
-	t.PUT("/:id", validateIDParam, w.handleTasksPut)
-	t.DELETE("/:id", validateIDParam, w.HandleRemove)
+	// auth
+	auth := w.router.Group("/auth")
+	{
+		auth.POST("/sign-up", w.userHandlers.SignUp)
+		auth.POST("/sign-in", w.authHandlers.SignIn)
+	}
 	return w.router
-}
-
-func (w *WebApp) HandleMarkComplete(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"reason": "invalid product id",
-		})
-		return
-	}
-
-	if err := w.todoList.MarkComplete(id); err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Success",
-	})
-}
-
-func (w *WebApp) HandleMarkNotComplete(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"reason": "invalid product id",
-		})
-		return
-	}
-
-	if err := w.todoList.MarkNotComplate(id); err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Success",
-	})
-}
-
-func (w *WebApp) HandleRemove(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"reason": "invalid product id",
-		})
-		return
-	}
-
-	if err := w.todoList.Remove(id); err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Success",
-	})
-}
-
-func (w *WebApp) HandleShowAll(c *gin.Context) {
-	allTasks, err := w.todoList.Show()
-	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
-	}
-	c.JSON(http.StatusOK, allTasks)
-}
-
-func (w *WebApp) HandleShowDone(c *gin.Context) {
-	doneTasks, err := w.todoList.ShowDoned()
-	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
-	}
-	c.JSON(http.StatusOK, doneTasks)
-}
-
-func (w *WebApp) HandleAdd(c *gin.Context) {
-	var data TaskData
-	if err := c.ShouldBindJSON(&data); err != nil {
-		c.String(http.StatusBadRequest, "Unable to read request body")
-		return
-	}
-
-	id, err := w.todoList.AddTask(model.Task{Name: data.Name})
-	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
-	}
-	c.JSON(http.StatusCreated, id)
-}
-
-func (w *WebApp) handleTasksPut(c *gin.Context) {
-	complete := c.Query("complete")
-	if complete == "true" {
-		w.HandleMarkComplete(c)
-	} else if complete == "false" {
-		w.HandleMarkNotComplete(c)
-	} else {
-		c.String(http.StatusBadRequest, "Missing or invalid 'complete' query parameter")
-	}
 }
 
 func validateIDParam(c *gin.Context) {
@@ -166,4 +73,17 @@ func validateIDParam(c *gin.Context) {
 		}
 	}
 	c.Next()
+}
+
+func RoleMiddleware(adminHandler gin.HandlerFunc, userHandler gin.HandlerFunc) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		switch role, _ := GetUserRole(c); role {
+		case "admin":
+			adminHandler(c)
+		case "user":
+			userHandler(c)
+		default:
+			c.AbortWithStatus(http.StatusForbidden)
+		}
+	}
 }

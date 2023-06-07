@@ -1,89 +1,118 @@
 package repository
 
 import (
-	"database/sql"
-	"errors"
-	"todolist/domain/model"
+	"todolist/db/model"
+	"todolist/domain/entity"
+
+	"gorm.io/gorm"
 )
 
 type TaskRepository struct {
-	db *sql.DB
+	db *gorm.DB
 }
 
-func NewTaskRepository(db *sql.DB) *TaskRepository {
+func NewTaskRepository(db *gorm.DB) *TaskRepository {
 	return &TaskRepository{db: db}
 }
 
-func (s *TaskRepository) Add(item model.Task) (int, error) {
-	query := `INSERT INTO tasks (name, is_done) VALUES ($1, $2) RETURNING id`
-	err := s.db.QueryRow(query, item.Name, item.IsDone).Scan(&item.ID)
-	if err != nil {
-		return 0, err
+func (s *TaskRepository) Create(item entity.Task) (int, error) {
+	taskModel := model.NewTaskModelFromEntity(item)
+	result := s.db.Create(&taskModel)
+	if result.Error != nil {
+		return 0, result.Error
 	}
-	return item.ID, nil
+	return int(taskModel.ID), nil
 }
 
-func (s *TaskRepository) Remove(id int) error {
-	query := `DELETE FROM tasks WHERE id = $1`
-	res, err := s.db.Exec(query, id)
-	if err != nil {
-		return err
-	}
-	count, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if count == 0 {
-		return errors.New("no rows affected")
-	}
-	return nil
+func (s *TaskRepository) Delete(id int) error {
+	result := s.db.Delete(&model.TaskModel{}, id)
+	return result.Error
 }
 
-func (s *TaskRepository) GetByID(id int) (model.Task, error) {
-	var t model.Task
-	query := `SELECT id, name, is_done FROM tasks WHERE id = $1`
-	err := s.db.QueryRow(query, id).Scan(&t.ID, &t.Name, &t.IsDone)
-	if err != nil {
-		return model.Task{}, err
+func (s *TaskRepository) SelectByID(id int) (entity.Task, error) {
+	var taskModel model.TaskModel
+	result := s.db.First(&taskModel, id)
+	if result.Error != nil {
+		return entity.Task{}, result.Error
 	}
-	return t, nil
+	return taskModel.ToEntity(), nil
 }
 
-func (s *TaskRepository) GetAll() ([]model.Task, error) {
-	var tasks []model.Task
-	query := `SELECT id, name, is_done FROM tasks`
-	rows, err := s.db.Query(query)
-	if err != nil {
-		return nil, err
+func (s *TaskRepository) SelectAll() ([]entity.Task, error) {
+	var taskModels []model.TaskModel
+	result := s.db.Find(&taskModels)
+	if result.Error != nil {
+		return nil, result.Error
 	}
-	defer rows.Close()
-	for rows.Next() {
-		var t model.Task
-		err = rows.Scan(&t.ID, &t.Name, &t.IsDone)
-		if err != nil {
-			return nil, err
-		}
-		tasks = append(tasks, t)
-	}
-	err = rows.Err()
-	if err != nil {
-		return nil, err
+	tasks := make([]entity.Task, len(taskModels))
+	for i, taskModel := range taskModels {
+		tasks[i] = taskModel.ToEntity()
 	}
 	return tasks, nil
 }
 
-func (s *TaskRepository) Update(item model.Task) error {
-	query := `UPDATE tasks SET name = $1, is_done = $2 WHERE id = $3`
-	res, err := s.db.Exec(query, item.Name, item.IsDone, item.ID)
-	if err != nil {
-		return err
+func (s *TaskRepository) Update(item entity.Task) error {
+	taskModel := model.NewTaskModelFromEntity(item)
+	result := s.db.Save(&taskModel)
+	return result.Error
+}
+
+func (s *TaskRepository) SelectAllCompleted() ([]entity.Task, error) {
+	var taskModels []model.TaskModel
+	result := s.db.Where("completed = ?", true).Find(&taskModels)
+	if result.Error != nil {
+		return nil, result.Error
 	}
-	count, err := res.RowsAffected()
-	if err != nil {
-		return err
+	tasks := make([]entity.Task, len(taskModels))
+	for i, taskModel := range taskModels {
+		tasks[i] = taskModel.ToEntity()
 	}
-	if count == 0 {
-		return errors.New("no rows affected")
+	return tasks, nil
+}
+
+func (s *TaskRepository) MarkAllComplete() error {
+	result := s.db.Model(&model.TaskModel{}).Where("completed = ?", false).Update("completed", true)
+	return result.Error
+}
+
+func (s *TaskRepository) ReassignUser(taskID int, newUserID int) (entity.Task, error) {
+	var taskModel model.TaskModel
+
+	result := s.db.Model(&taskModel).Where("id = ?", taskID).Update("user_id", newUserID)
+	if result.Error != nil {
+		return entity.Task{}, result.Error
 	}
-	return nil
+
+	result = s.db.First(&taskModel, taskID)
+	if result.Error != nil {
+		return entity.Task{}, result.Error
+	}
+
+	return taskModel.ToEntity(), nil
+}
+
+func (s *TaskRepository) SelectAllByUserID(userID int) ([]entity.Task, error) {
+	var taskModels []model.TaskModel
+	result := s.db.Where("user_id = ?", userID).Find(&taskModels)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	tasks := make([]entity.Task, len(taskModels))
+	for i, taskModel := range taskModels {
+		tasks[i] = taskModel.ToEntity()
+	}
+	return tasks, nil
+}
+
+func (s *TaskRepository) SelectAllCompletedByUserID(userID int) ([]entity.Task, error) {
+	var taskModels []model.TaskModel
+	result := s.db.Where("user_id = ? AND completed = ?", userID, true).Find(&taskModels)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	tasks := make([]entity.Task, len(taskModels))
+	for i, taskModel := range taskModels {
+		tasks[i] = taskModel.ToEntity()
+	}
+	return tasks, nil
 }
