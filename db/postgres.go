@@ -9,16 +9,17 @@ import (
 
 var database *gorm.DB
 
-const (
-	host     = "localhost"
-	port     = 5432
-	user     = "postgres"
-	password = "password"
-	dbname   = "mydb"
-)
+type Config struct {
+	Host     string
+	Port     string
+	Username string
+	Password string
+	DBName   string
+	SSLMode  string
+}
 
-func initDB() *gorm.DB {
-	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
+func initDB(config Config) *gorm.DB {
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", config.Host, config.Port, config.Username, config.Password, config.DBName, config.SSLMode)
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic(err)
@@ -28,8 +29,8 @@ func initDB() *gorm.DB {
 }
 
 // StartDbConnection Creates connection to database
-func StartDbConnection() {
-	database = initDB()
+func StartDbConnection(config Config) {
+	database = initDB(config)
 }
 
 // GetDBConn func for getting db conn globally
@@ -47,4 +48,3 @@ func CloseDbConnection() error {
 	}
 	return nil
 }
-

@@ -12,10 +12,23 @@ import (
 	"todolist/handlers"
 	"todolist/repository"
 	"todolist/service"
+
+	"github.com/spf13/viper"
 )
 
 func main() {
-	db.StartDbConnection()
+	// yaml
+	if err := initConfig(); err != nil {
+		log.Fatalf("Error occured while init viper config: %s", err.Error())
+		return
+	}
+	var c db.Config
+	if err := viper.UnmarshalKey("db", &c); err != nil {
+		log.Fatalf("Error unmarshaling config: %s", err)
+	}
+	c.Password = os.Getenv("DB_PASSWORD")
+
+	db.StartDbConnection(c)
 	defer db.CloseDbConnection()
 	if err := db.Migrate(db.GetDBConn()); err != nil {
 		log.Fatalf("Error while migrating tables, err is: %s", err.Error())
@@ -37,7 +50,7 @@ func main() {
 
 	srv := new(todolist.Server)
 	go func() {
-		if err := srv.Run("9191", app.SetupRoutes()); err != nil {
+		if err := srv.Run(viper.GetString("PORT"), app.SetupRoutes()); err != nil {
 			log.Fatalf("Error occured while running http server: %s", err.Error())
 			return
 		}
@@ -54,4 +67,10 @@ func main() {
 	if err := srv.Shutdown(context.Background()); err != nil {
 		log.Fatalf("error occurred on server shutting down: %s", err.Error())
 	}
+}
+
+func initConfig() error {
+	viper.AddConfigPath("configs")
+	viper.SetConfigName("config")
+	return viper.ReadInConfig()
 }
