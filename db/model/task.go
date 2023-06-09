@@ -5,18 +5,18 @@ import (
 	"todolist/domain/entity"
 )
 
-type TaskModel struct {
+type Task struct {
 	ID          uint   `gorm:"primaryKey"`
 	Title       string `gorm:"not null"`
 	Description string
 	DueDate     *time.Time
 	Priority    int
-	Completed   bool      `gorm:"default:false"`
-	UserID      uint      `gorm:"not null"`
-	User        UserModel `gorm:"constraint:OnDelete:CASCADE;"`
+	Completed   bool `gorm:"default:false"`
+	UserID      uint `gorm:"not null"`
+	User        User `gorm:"constraint:OnDelete:CASCADE;"`
 }
 
-func (m *TaskModel) ToEntity() entity.Task {
+func (m *Task) ToEntity() entity.Task {
 	return entity.Task{
 		ID:          int(m.ID),
 		UserID:      int(m.UserID),
@@ -28,8 +28,8 @@ func (m *TaskModel) ToEntity() entity.Task {
 	}
 }
 
-func NewTaskModelFromEntity(e entity.Task) TaskModel {
-	return TaskModel{
+func NewTaskModelFromEntity(e entity.Task) Task {
+	return Task{
 		ID:          uint(e.ID),
 		Title:       e.Title,
 		Description: e.Description,

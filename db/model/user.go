@@ -2,16 +2,16 @@ package model
 
 import "todolist/domain/entity"
 
-type UserModel struct {
-	ID           uint        `gorm:"primaryKey"`
-	Name         string      `gorm:"not null"`
-	Email        string      `gorm:"unique;not null"`
-	PasswordHash string      `gorm:"not null"`
-	Role         string      `gorm:"default:user;check:role IN ('user', 'admin')"`
-	Tasks        []TaskModel `gorm:"foreignKey:UserID"`
+type User struct {
+	ID           uint   `gorm:"primaryKey"`
+	Name         string `gorm:"not null"`
+	Email        string `gorm:"unique;not null"`
+	PasswordHash string `gorm:"not null"`
+	Role         string `gorm:"default:user;check:role IN ('user', 'admin')"`
+	Tasks        []Task `gorm:"foreignKey:UserID"`
 }
 
-func (m *UserModel) ToEntity() entity.User {
+func (m *User) ToEntity() entity.User {
 	return entity.User{
 		ID:       int(m.ID),
 		Name:     m.Name,
@@ -21,8 +21,8 @@ func (m *UserModel) ToEntity() entity.User {
 	}
 }
 
-func NewUserModelFromEntity(e entity.User) UserModel {
-	return UserModel{
+func NewUserModelFromEntity(e entity.User) User {
+	return User{
 		ID:           uint(e.ID),
 		Name:         e.Name,
 		Email:        e.Email,

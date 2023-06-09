@@ -31,12 +31,12 @@ func (s *UserRepository) Update(item entity.User) error {
 }
 
 func (s *UserRepository) Delete(id int) error {
-	result := s.db.Delete(&model.UserModel{}, id)
+	result := s.db.Delete(&model.User{}, id)
 	return result.Error
 }
 
 func (s *UserRepository) SelectByID(id int) (entity.User, error) {
-	var userModel model.UserModel
+	var userModel model.User
 	result := s.db.Preload("Tasks").First(&userModel, id)
 	if result.Error != nil {
 		return entity.User{}, result.Error
@@ -49,7 +49,7 @@ func (s *UserRepository) SelectByID(id int) (entity.User, error) {
 }
 
 func (s *UserRepository) SelectAll() ([]entity.User, error) {
-	var userModels []model.UserModel
+	var userModels []model.User
 	result := s.db.Preload("Tasks").Find(&userModels)
 	if result.Error != nil {
 		return nil, result.Error
@@ -65,7 +65,7 @@ func (s *UserRepository) SelectAll() ([]entity.User, error) {
 }
 
 func (s *UserRepository) SelectByEmailAndPassword(email string, password string) (entity.User, error) {
-	var userModel model.UserModel
+	var userModel model.User
 	result := s.db.Where("email = ? AND password_hash = ?", email, password).Preload("Tasks").First(&userModel)
 	if result.Error != nil {
 		return entity.User{}, result.Error

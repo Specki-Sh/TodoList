@@ -8,13 +8,13 @@ import (
 
 func Migrate(db *gorm.DB) error {
 	// Создание таблицы users
-	err := db.AutoMigrate(&model.UserModel{})
+	err := db.AutoMigrate(&model.User{})
 	if err != nil {
 		return err
 	}
 
 	// Создание таблицы tasks
-	err = db.AutoMigrate(&model.TaskModel{})
+	err = db.AutoMigrate(&model.Task{})
 	if err != nil {
 		return err
 	}
