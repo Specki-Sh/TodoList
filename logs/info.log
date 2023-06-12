@@ -1,0 +1,4 @@
+time="2023-06-12T09:51:53+03:00" level=info msg="Validating token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2ODY1OTA0MzIsImlhdCI6MTY4NjU0NzIzMiwidXNlcl9pZCI6NSwicm9sZSI6ImFkbWluIn0.c5HdQivVauFNihlFKIjUF_j2VIO1ttnzDTcnl_aVUo4"
+time="2023-06-12T09:51:53+03:00" level=info msg="Token validated for user ID 5 with role admin"
+time="2023-06-12T09:51:53+03:00" level=info msg="All users shown successfully"
+time="2023-06-12T09:51:59+03:00" level=info msg="User bobsmith@exm.com signed in successfully"
