@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/gin-gonic/gin v1.9.0
+	github.com/sirupsen/logrus v1.9.3
 	gorm.io/driver/postgres v1.5.2
 	gorm.io/gorm v1.25.1
 )

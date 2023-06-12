@@ -10,6 +10,7 @@ import (
 	"todolist"
 	"todolist/db"
 	"todolist/handlers"
+	"todolist/logs"
 	"todolist/repository"
 	"todolist/service"
 
@@ -17,6 +18,10 @@ import (
 )
 
 func main() {
+	// log
+	logs.InitLogger()
+	defer logs.CloseLoggerFile()
+
 	// yaml
 	if err := initConfig(); err != nil {
 		log.Fatalf("Error occured while init viper config: %s", err.Error())
