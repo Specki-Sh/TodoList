@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"regexp"
+	"todolist/logs"
 
 	"github.com/gin-gonic/gin"
 )
@@ -66,6 +67,7 @@ func validateIDParam(c *gin.Context) {
 	if id != "" {
 		matched, _ := regexp.MatchString(`^\d+$`, id)
 		if !matched {
+			logs.GetLogger().Errorf("Invalid ID: %s", id)
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"reason": "invalid id",
 			})
@@ -79,6 +81,7 @@ func RoleMiddleware(UserPermissionMiddleware gin.HandlerFunc) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, err := GetUserRole(c)
 		if err != nil {
+			logs.GetLogger().Errorf("Failed to get user role: %v", err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
