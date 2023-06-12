@@ -36,7 +36,7 @@ func (w *WebApp) SetupRoutes() *gin.Engine {
 	{
 		ta.PATCH("/:id/reassign", validateIDParam, w.taskHandlers.PatchUserReassing)
 	}
-	tu := w.router.Group("/tasks", w.authHandlers.userIdentity, w.authHandlers.AdminPermissionMiddleware(), w.taskHandlers.TaskPermissionMiddleware())
+	tu := w.router.Group("/tasks", w.authHandlers.userIdentity, RoleMiddleware(w.taskHandlers.TaskPermissionMiddleware()))
 	{
 		tu.GET("/:id", validateIDParam, w.taskHandlers.GetByID)
 		tu.PATCH("/:id", validateIDParam, w.taskHandlers.PatchCompeteStatus)
@@ -44,7 +44,7 @@ func (w *WebApp) SetupRoutes() *gin.Engine {
 	}
 
 	// User
-	u := w.router.Group("/users", w.authHandlers.AdminPermissionMiddleware())
+	u := w.router.Group("/users", w.authHandlers.userIdentity, w.authHandlers.AdminPermissionMiddleware())
 	{
 		u.GET("/", w.userHandlers.GetAll)
 		u.GET("/:id", validateIDParam, w.userHandlers.GetByID)
@@ -75,15 +75,19 @@ func validateIDParam(c *gin.Context) {
 	c.Next()
 }
 
-func RoleMiddleware(adminHandler gin.HandlerFunc, userHandler gin.HandlerFunc) gin.HandlerFunc {
+func RoleMiddleware(UserPermissionMiddleware gin.HandlerFunc) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		switch role, _ := GetUserRole(c); role {
-		case "admin":
-			adminHandler(c)
-		case "user":
-			userHandler(c)
-		default:
-			c.AbortWithStatus(http.StatusForbidden)
+		role, err := GetUserRole(c)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
 		}
+
+		if role == "admin" {
+			c.Next()
+			return
+		}
+
+		UserPermissionMiddleware(c)
 	}
 }

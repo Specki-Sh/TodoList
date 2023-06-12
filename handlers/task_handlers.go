@@ -199,11 +199,6 @@ func (t *TaskHandlers) PatchUserReassing(c *gin.Context) {
 
 func (t *TaskHandlers) TaskPermissionMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if c.GetBool("AdminPermission") {
-			c.Next()
-			return
-		}
-
 		taskID := c.Param("id")
 		taskIDInt, _ := strconv.Atoi(taskID)
 		userId, _ := GetUserId(c)

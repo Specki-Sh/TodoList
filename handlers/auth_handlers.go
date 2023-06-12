@@ -50,24 +50,24 @@ func (a *AuthHandlers) SignIn(c *gin.Context) {
 func (a *AuthHandlers) userIdentity(c *gin.Context) {
 	header := c.GetHeader(authorizationHeader)
 	if header == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"reason": "empty auth header"})
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"reason": "empty auth header"})
 		return
 	}
 
 	headerParts := strings.Split(header, " ")
 	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
-		c.JSON(http.StatusUnauthorized, gin.H{"reason": "invalid auth header"})
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"reason": "invalid auth header"})
 		return
 	}
 
 	if len(headerParts[1]) == 0 {
-		c.JSON(http.StatusUnauthorized, gin.H{"reason": "token is empty"})
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"reason": "token is empty"})
 		return
 	}
 
 	userId, role, err := a.authUseCase.ParseToken(headerParts[1])
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"reason": err.Error()})
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"reason": err.Error()})
 		return
 	}
 
@@ -107,14 +107,15 @@ func (a *AuthHandlers) AdminPermissionMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, err := GetUserRole(c)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Internal server error", "error:": err.Error()})
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		if role == "admin" {
-			c.Set("AdminPermission", true)
-			c.Next()
-		} else {
-			c.Next()
+
+		if role != "admin" {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "access forbidden"})
+			return
 		}
+
+		c.Next()
 	}
 }
